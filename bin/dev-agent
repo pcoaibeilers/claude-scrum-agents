@@ -1,0 +1,166 @@
+#!/usr/bin/env node
+
+/**
+ * dev-agent CLI - Development Agent command-line interface
+ */
+
+const { Command } = require('commander');
+const DevelopmentAgent = require('../src/agents/DevelopmentAgent');
+const chalk = require('chalk');
+const path = require('path');
+require('dotenv').config();
+
+const program = new Command();
+
+program
+  .name('dev-agent')
+  .description('AI-powered development agent for code generation and development tasks')
+  .version('0.1.0');
+
+// Generate code from user story
+program
+  .command('generate')
+  .description('Generate code from user story')
+  .option('-t, --title <title>', 'Story title')
+  .option('-d, --description <description>', 'Story description')
+  .option('-a, --acceptance <criteria...>', 'Acceptance criteria (can be repeated)')
+  .option('-o, --output <path>', 'Output directory', '')
+  .option('--tech-stack <stack...>', 'Technology stack (e.g., node, react, typescript)')
+  .option('--test-framework <framework>', 'Test framework (default: jest)', 'jest')
+  .option('--write', 'Write generated files to disk', false)
+  .action(async (options) => {
+    try {
+      if (!options.title) {
+        console.log(chalk.red('Error: Story title is required (--title)'));
+        process.exit(1);
+      }
+
+      const agent = new DevelopmentAgent();
+
+      const story = {
+        title: options.title,
+        description: options.description || '',
+        acceptanceCriteria: options.acceptance || []
+      };
+
+      const result = await agent.generateFromStory(story, {
+        techStack: options.techStack,
+        testFramework: options.testFramework,
+        outputPath: options.output,
+        write: options.write
+      });
+
+      if (!options.write) {
+        console.log(chalk.yellow('\n⚠ Files not written. Use --write to save to disk'));
+        console.log(chalk.gray('\nGenerated code:'));
+        console.log(result.rawOutput);
+      }
+
+    } catch (error) {
+      console.error(chalk.red(`Error: ${error.message}`));
+      process.exit(1);
+    }
+  });
+
+// Generate tests for existing file
+program
+  .command('test')
+  .description('Generate tests for existing code file')
+  .argument('<file>', 'File to generate tests for')
+  .option('-f, --framework <framework>', 'Test framework (default: jest)', 'jest')
+  .option('-c, --coverage <target>', 'Coverage target percentage (default: 80)', '80')
+  .option('--write', 'Write test file to disk', false)
+  .action(async (file, options) => {
+    try {
+      const agent = new DevelopmentAgent();
+
+      const result = await agent.generateTests(file, {
+        framework: options.framework,
+        coverage: parseInt(options.coverage),
+        write: options.write
+      });
+
+      if (!options.write) {
+        console.log(chalk.yellow('\n⚠ Test file not written. Use --write to save to disk'));
+        console.log(chalk.gray('\nGenerated tests:'));
+        console.log(result.tests);
+      }
+
+    } catch (error) {
+      console.error(chalk.red(`Error: ${error.message}`));
+      process.exit(1);
+    }
+  });
+
+// Review code
+program
+  .command('review')
+  .description('Review code file and suggest improvements')
+  .argument('<file>', 'File to review')
+  .action(async (file) => {
+    try {
+      const agent = new DevelopmentAgent();
+      await agent.reviewCode(file);
+    } catch (error) {
+      console.error(chalk.red(`Error: ${error.message}`));
+      process.exit(1);
+    }
+  });
+
+// Refactor code
+program
+  .command('refactor')
+  .description('Refactor code based on instructions')
+  .argument('<file>', 'File to refactor')
+  .argument('<instructions>', 'Refactoring instructions')
+  .option('--write', 'Write refactored code to disk', false)
+  .action(async (file, instructions, options) => {
+    try {
+      const agent = new DevelopmentAgent();
+
+      const result = await agent.refactorCode(file, instructions, {
+        write: options.write
+      });
+
+      if (!options.write) {
+        console.log(chalk.yellow('\n⚠ Refactored code not written. Use --write to save to disk'));
+        console.log(chalk.gray('\nRefactored code:'));
+        console.log(result.refactored);
+      }
+
+    } catch (error) {
+      console.error(chalk.red(`Error: ${error.message}`));
+      process.exit(1);
+    }
+  });
+
+// Create commit with AI-generated message
+program
+  .command('commit')
+  .description('Create git commit with AI-generated message')
+  .option('-m, --message <message>', 'Custom commit message (overrides AI generation)')
+  .option('-f, --files <files...>', 'Specific files to commit (default: all)')
+  .option('--convention <type>', 'Commit message convention (default: conventional)', 'conventional')
+  .action(async (options) => {
+    try {
+      const agent = new DevelopmentAgent();
+
+      await agent.createCommit({
+        message: options.message,
+        files: options.files,
+        convention: options.convention
+      });
+
+    } catch (error) {
+      console.error(chalk.red(`Error: ${error.message}`));
+      process.exit(1);
+    }
+  });
+
+// Parse arguments
+program.parse(process.argv);
+
+// Show help if no command provided
+if (!process.argv.slice(2).length) {
+  program.outputHelp();
+}
