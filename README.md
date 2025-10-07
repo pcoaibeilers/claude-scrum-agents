@@ -32,6 +32,14 @@ cp .env.example .env
 # Edit .env and add your API key
 ```
 
+### MCP Integration (Optional)
+
+This project includes Model Context Protocol (MCP) integration for enhanced AI capabilities:
+
+- **Sequential Thinking MCP**: Enables step-by-step reasoning for complex code generation tasks
+
+The MCP configuration is in `.mcp.json` and is automatically used when running Claude Code with this project.
+
 ## Usage
 
 ### Generate Code from User Story
